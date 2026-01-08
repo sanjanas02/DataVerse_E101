@@ -1,0 +1,250 @@
+import streamlit as st
+import pandas as pd
+
+# ================= PAGE CONFIG =================
+st.set_page_config(
+    page_title="Upsprout",
+    page_icon="🤖",
+    layout="centered"
+)
+
+# ================= STYLES =================
+st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #22C55E, #0EA5E9);
+    padding: 3rem;
+    border-radius: 32px;
+    box-shadow: 0 30px 70px rgba(14,165,233,.35);
+    color: white;
+    text-align: center;
+">
+    <h1 style="font-size:2.6rem;font-weight:800;">🤖 Welcome to Upsprout</h1>
+    <p style="font-size:1.05rem;opacity:.95;">
+        AI-powered fundraising & growth intelligence
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# ================= SESSION STATE =================
+defaults = {
+    "users": {},
+    "logged_in": False,
+    "current_user": "",
+    "current_role": "",
+    "investments": {},
+    "founder_data": {}
+}
+for k, v in defaults.items():
+    st.session_state.setdefault(k, v)
+
+# ================= LOGIN / REGISTER =================
+if not st.session_state.logged_in:
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.header("🤖 Welcome to Upsprout")
+
+    mode = st.radio("Choose action", ["Login", "Register"])
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+
+    role = None
+    if mode == "Register":
+        role = st.selectbox("Register as", ["Founder", "Investor"])
+
+    if st.button("Continue"):
+        if mode == "Register":
+            st.session_state.users[username] = {"password": password, "role": role}
+            st.success("Account created. Login now.")
+        else:
+            user = st.session_state.users.get(username)
+            if user and user["password"] == password:
+                st.session_state.logged_in = True
+                st.session_state.current_user = username
+                st.session_state.current_role = user["role"]
+                st.rerun()
+            else:
+                st.error("Invalid credentials")
+    st.stop()
+
+# ================= SIDEBAR =================
+st.sidebar.title("Upsprout")
+page = st.sidebar.radio(
+    "Navigate",
+    ["📊 Dashboard", "🔍 Analysis", "📅 Growth Plan", "🤝 Fundraising"]
+)
+
+if st.sidebar.button("🚪 Logout"):
+    st.session_state.logged_in = False
+    st.rerun()
+
+# ================= HERO =================
+st.markdown(f"""
+<div class="hero">
+<h1>Upsprout 🌱</h1>
+<p>Welcome <b>{st.session_state.current_user}</b> ({st.session_state.current_role}) 👋<br>
+Explainable AI for business growth & investing</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ================= HELPERS =================
+def business_type(text):
+    t = text.lower()
+    if any(k in t for k in ["food","restaurant","cafe"]): return "Food"
+    if any(k in t for k in ["service","repair","salon"]): return "Service"
+    if any(k in t for k in ["b2b","supplier"]): return "B2B"
+    return "Product"
+
+def confidence_score(budget, time):
+    return min(95, 30 + (40 if time >= 4 else 15) + (25 if budget >= 50000 else 10))
+
+def ai_suggestions(btype):
+    return {
+        "Food": [
+            "Start with pre-orders to validate demand",
+            "Track daily sales for cash-flow proof",
+            "Use location-based offers to reduce risk"
+        ],
+        "Service": [
+            "Use advance bookings as revenue proof",
+            "Highlight repeat-client percentage",
+            "Keep funding needs minimal"
+        ],
+        "B2B": [
+            "Use invoices or LOIs instead of projections",
+            "Expect longer sales cycles",
+            "Focus on fewer high-value clients"
+        ],
+        "Product": [
+            "Launch small batches to test demand",
+            "Use pre-orders to reduce inventory risk",
+            "Collect early user feedback"
+        ]
+    }[btype]
+
+def fundraising_paths(btype):
+    return {
+        "Food": "Bootstrapping → Crowdfunding → Local Angels",
+        "Service": "Bootstrapping → Revenue Reinvestment → Angels",
+        "B2B": "Bootstrapping → Invoice Financing → Strategic Investors",
+        "Product": "Bootstrapping → Pre-orders → Angels / Seed"
+    }[btype]
+
+def fundraising_pitch(btype):
+    return {
+        "Food": "We have consistent local demand and predictable revenue. Funds will expand reach and operations.",
+        "Service": "Low-cost, repeat-client model. Funds accelerate acquisition and delivery capacity.",
+        "B2B": "High-value clients with long cycles. Funds stabilize operations and expand contracts.",
+        "Product": "Early traction exists. Funds scale production responsibly."
+    }[btype]
+
+# ================= FOUNDER INPUT =================
+if st.session_state.current_role == "Founder":
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    business = st.text_input("🏪 Describe your business")
+    budget = st.number_input("💰 Annual marketing budget", min_value=0, step=1000)
+    time = st.slider("⏱ Time per week", 1, 15)
+    goal = st.selectbox("🎯 Goal", ["Visibility","Sales","Expansion"])
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if business:
+        st.session_state.founder_data[st.session_state.current_user] = {
+            "business": business,
+            "budget": budget,
+            "time": time,
+            "goal": goal
+        }
+
+# ================= DASHBOARD =================
+if page == "📊 Dashboard":
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    if st.session_state.current_role == "Investor":
+        st.subheader("Founder Opportunities")
+        for f, d in st.session_state.founder_data.items():
+            btype = business_type(d["business"])
+            conf = confidence_score(d["budget"], d["time"])
+            st.markdown(f"""
+### 🏪 {f} — {btype}
+*Confidence:* {conf}%
+""")
+    else:
+        st.info("Investor interest will appear here.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ================= ANALYSIS =================
+elif page == "🔍 Analysis":
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    for f, d in st.session_state.founder_data.items():
+        btype = business_type(d["business"])
+        conf = confidence_score(d["budget"], d["time"])
+        st.markdown(f"""
+### 📊 {f} — {btype}
+*Confidence:* {conf}%
+
+*Why Upsprout is confident:*
+• Time commitment  
+• Budget alignment  
+• Sector-aware evaluation  
+
+*AI Suggestions:*
+{chr(10).join([f"• {s}" for s in ai_suggestions(btype)])}
+""")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ================= GROWTH PLAN =================
+elif page == "📅 Growth Plan":
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    st.markdown("""
+### 📅 7-Day Growth Plan
+Day 1: Positioning  
+Day 2: Content  
+Day 3: Publish  
+Day 4: Engage  
+Day 5: Social proof  
+Day 6: Offer  
+Day 7: Review metrics
+""")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ================= FUNDRAISING =================
+elif page == "🤝 Fundraising":
+    st.markdown("<div class='card'>", unsafe_allow_html=True)
+    for f, d in st.session_state.founder_data.items():
+        btype = business_type(d["business"])
+        st.markdown(f"""
+### 🤝 Fundraising Guidance — {btype}
+
+*Suggested Pitch:*  
+{fundraising_pitch(btype)}
+
+*Best Fundraising Paths:*  
+{fundraising_paths(btype)}
+
+*AI Suggestions to Improve Readiness:*  
+{chr(10).join([f"• {s}" for s in ai_suggestions(btype)])}
+""")
+
+        # 📊 Capital Usage Breakdown Graph (ADDED)
+        st.subheader("💸 Suggested Capital Usage Breakdown")
+
+        capital_usage = {
+            "Food": {"Marketing": 40, "Operations": 30, "Inventory": 30},
+            "Service": {"Marketing": 30, "Tools & Software": 40, "Hiring": 30},
+            "B2B": {"Sales & Outreach": 50, "Operations": 30, "Legal & Compliance": 20},
+            "Product": {"Inventory / Production": 50, "Marketing": 30, "R&D": 20}
+        }
+
+        df = pd.DataFrame.from_dict(
+            capital_usage[btype],
+            orient="index",
+            columns=["Percentage"]
+        )
+
+        st.bar_chart(df)
+
+        st.markdown("""
+*Investor Perspective:*  
+• Clear capital allocation  
+• Reduced uncertainty  
+• Business-type–aligned risk
+""")
+
+    st.markdown("</div>", unsafe_allow_html=True)
