@@ -79,7 +79,7 @@ if st.sidebar.button("🚪 Logout"):
 # ================= HERO =================
 st.markdown(f"""
 <div class="hero">
-<h1>Upsprout 🌱</h1>
+<h1>Upsprout 🤖 </h1>
 <p>Welcome <b>{st.session_state.current_user}</b> ({st.session_state.current_role}) 👋<br>
 Explainable AI for business growth & investing</p>
 </div>
